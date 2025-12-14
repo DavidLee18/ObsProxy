@@ -1,16 +1,27 @@
 using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
-builder.WebHost.UseUrls(String.Format("http://0.0.0.0:{0}", Environment.GetEnvironmentVariable("OBS_PROXY_PORT")));
+var OBS_CMD_PATH = Environment.GetEnvironmentVariable("OBS_CMD_PATH");
+var OBS_WS_PORT = Environment.GetEnvironmentVariable("OBS_WS_PORT");
+var OBS_WS_PW = Environment.GetEnvironmentVariable("OBS_WS_PW");
+
+if (string.IsNullOrEmpty(OBS_CMD_PATH) || string.IsNullOrEmpty(OBS_WS_PORT) || string.IsNullOrEmpty(OBS_WS_PW))
+{
+    throw new Exception("Missing environment variables");
+}
+
+builder.WebHost.UseUrls($"http://0.0.0.0:{OBS_WS_PORT}");
 builder.Host.UseWindowsService();
 var app = builder.Build();
+
+app.Logger.LogInformation($"Starting ObsProxy on port {OBS_WS_PORT}; obs-cmd path is {OBS_CMD_PATH}, obs-ws password is {OBS_WS_PW}");
 
 app.MapGet("/", () =>
 {
     var psi = new ProcessStartInfo
     {
-        FileName = Environment.GetEnvironmentVariable("OBS_CMD_PATH"),
-        Arguments = String.Format("-w obsws://localhost:{0}/{1} info", Environment.GetEnvironmentVariable("OBS_WS_PORT"), Environment.GetEnvironmentVariable("OBS_WS_PW")),
+        FileName = OBS_CMD_PATH,
+        Arguments = $"-w obsws://localhost:{OBS_WS_PORT}/{OBS_WS_PW} info",
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
@@ -39,8 +50,8 @@ app.MapDelete("/", () =>
 {
     var psi = new ProcessStartInfo
     {
-        FileName = Environment.GetEnvironmentVariable("OBS_CMD_PATH"),
-        Arguments = String.Format("-w obsws://localhost:{0}/{1} streaming stop", Environment.GetEnvironmentVariable("OBS_WS_PORT"), Environment.GetEnvironmentVariable("OBS_WS_PW")),
+        FileName = OBS_CMD_PATH,
+        Arguments = $"-w obsws://localhost:{OBS_WS_PORT}/{OBS_WS_PW} streaming stop",
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
@@ -69,8 +80,8 @@ app.MapPost("/", (ScenePack res) =>
 {
     var psi = new ProcessStartInfo
     {
-        FileName = Environment.GetEnvironmentVariable("OBS_CMD_PATH"),
-        Arguments = String.Format("-w obsws://localhost:{0}/{1} scene switch {2}", Environment.GetEnvironmentVariable("OBS_WS_PORT"), Environment.GetEnvironmentVariable("OBS_WS_PW"), res.scene),
+        FileName = OBS_CMD_PATH,
+        Arguments = $"-w obsws://localhost:{OBS_WS_PORT}/{OBS_WS_PW} scene switch {res.scene}",
         UseShellExecute = false,
         RedirectStandardOutput = true,
         RedirectStandardError = true,
