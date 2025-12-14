@@ -7,13 +7,14 @@ var builder = WebApplication.CreateBuilder(args);
 var OBS_CMD_PATH = Environment.GetEnvironmentVariable("OBS_CMD_PATH");
 var OBS_WS_PORT = Environment.GetEnvironmentVariable("OBS_WS_PORT");
 var OBS_WS_PW = Environment.GetEnvironmentVariable("OBS_WS_PW");
+var OBS_PROXY_PORT = Environment.GetEnvironmentVariable("OBS_PROXY_PORT");
 
-if (string.IsNullOrEmpty(OBS_CMD_PATH) || string.IsNullOrEmpty(OBS_WS_PORT) || string.IsNullOrEmpty(OBS_WS_PW))
+if (string.IsNullOrEmpty(OBS_CMD_PATH) || string.IsNullOrEmpty(OBS_WS_PORT) || string.IsNullOrEmpty(OBS_WS_PW) || string.IsNullOrEmpty(OBS_PROXY_PORT))
 {
     throw new Exception("Missing environment variables");
 }
 
-builder.WebHost.UseUrls($"http://0.0.0.0:{OBS_WS_PORT}");
+builder.WebHost.UseUrls($"http://0.0.0.0:{OBS_PROXY_PORT}");
 builder.Host.UseWindowsService();
 builder.Logging.AddEventLog(settings =>
 {
@@ -21,7 +22,7 @@ builder.Logging.AddEventLog(settings =>
 });
 var app = builder.Build();
 
-app.Logger.LogInformation($"Starting ObsProxy on port {OBS_WS_PORT}; obs-cmd path is {OBS_CMD_PATH}, obs-ws password is {OBS_WS_PW}");
+app.Logger.LogInformation($"Starting ObsProxy on port {OBS_PROXY_PORT}; obs-cmd path is {OBS_CMD_PATH}, obs-ws password is {OBS_WS_PW}");
 
 app.MapGet("/", () =>
 {
