@@ -1,3 +1,6 @@
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.Logging;
+using Microsoft.Extensions.DependencyInjection;
 using System.Diagnostics;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +15,10 @@ if (string.IsNullOrEmpty(OBS_CMD_PATH) || string.IsNullOrEmpty(OBS_WS_PORT) || s
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{OBS_WS_PORT}");
 builder.Host.UseWindowsService();
+builder.Logging.AddEventLog(settings =>
+{
+    settings.SourceName = "ObsProxyService"; // Matches the name in appsettings.json
+});
 var app = builder.Build();
 
 app.Logger.LogInformation($"Starting ObsProxy on port {OBS_WS_PORT}; obs-cmd path is {OBS_CMD_PATH}, obs-ws password is {OBS_WS_PW}");
