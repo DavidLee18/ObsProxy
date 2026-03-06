@@ -164,8 +164,9 @@ namespace ObsProxy
 						{
 							FileName = OBS_PATH,
 							UseShellExecute = true,
-							RedirectStandardOutput = true,
-							RedirectStandardError = true,
+							WorkingDirectory = Path.GetDirectoryName(OBS_PATH) ?? "",
+							RedirectStandardOutput = false,
+							RedirectStandardError = false,
 						};
 						var p = Process.Start(psi);
 						if (p == null)
