@@ -16,8 +16,6 @@ if (string.IsNullOrEmpty(OBS_CMD_PATH) || string.IsNullOrEmpty(OBS_WS_PORT) || s
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{OBS_PROXY_PORT}");
 builder.Host.UseWindowsService();
-builder.Services.AddControllers();
-builder.Services.AddHostedService<ObsProxy.KeepObsUpService>();
 if (System.OperatingSystem.IsWindows())
 {
 	builder.Logging.AddEventLog(settings =>
@@ -125,80 +123,4 @@ app.Run();
 namespace ObsProxy
 {
 	public record ScenePack(string Scene);
-
-	public class KeepObsUpService(ILogger<KeepObsUpService> logger) : BackgroundService
-	{
-		private readonly ILogger<KeepObsUpService> _logger = logger;
-		private readonly string OBS_PATH = Environment.GetEnvironmentVariable("OBS_PATH") ?? throw new Exception("Missing OBS_PATH environment variable");
-		private string SENTINEL_PATH
-		{
-			get
-			{
-				string roamingAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
-				return Path.Combine(roamingAppDataPath, "obs-studio", ".sentinel");
-			}
-		}
-
-		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
-		{
-			_logger.LogInformation("KeepObsUpService is starting.");
-
-			stoppingToken.Register(() =>
-				_logger.LogInformation("KeepObsUpService is stopping."));
-
-			while (!stoppingToken.IsCancellationRequested)
-			{
-				_logger.LogInformation("KeepObsUpService is doing background work at: {time}", DateTimeOffset.Now);
-
-				if (Process.GetProcessesByName("obs64.exe").Length == 0)
-				{
-					_logger.LogWarning("OBS is not running. Attempting to start it.");
-					try
-					{
-						if (Directory.Exists(SENTINEL_PATH))
-						{
-							_logger.LogInformation("Sentinel directory exists at {path}. Deleting it to allow OBS to start.", SENTINEL_PATH);
-							Directory.Delete(SENTINEL_PATH, true);
-						}
-						var psi = new ProcessStartInfo
-						{
-							FileName = OBS_PATH,
-							UseShellExecute = true,
-							WorkingDirectory = Path.GetDirectoryName(OBS_PATH) ?? "",
-							RedirectStandardOutput = false,
-							RedirectStandardError = false,
-						};
-						var p = Process.Start(psi);
-						if (p == null)
-						{
-							_logger.LogError("Failed to start OBS: process spawn failed");
-						}
-						else
-						{
-							p.WaitForExit();
-							string err = p.StandardError.ReadToEnd();
-							if (err.Length > 0)
-							{
-								_logger.LogError("Failed to start OBS: {error}", err);
-							}
-							else
-							{
-								string o = p.StandardOutput.ReadToEnd();
-								_logger.LogInformation("OBS started successfully: {output}", o);
-							}
-							p.Dispose();
-						}
-					}
-					catch (Exception ex)
-					{
-						_logger.LogError(ex, "Exception occurred while trying to start OBS");
-					}
-				}
-
-				await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
-			}
-
-			_logger.LogInformation("KeepObsUpService has stopped.");
-		}
-	}
 }
