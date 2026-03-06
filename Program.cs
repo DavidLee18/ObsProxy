@@ -129,7 +129,7 @@ namespace ObsProxy
 	public class KeepObsUpService(ILogger<KeepObsUpService> logger) : BackgroundService
 	{
 		private readonly ILogger<KeepObsUpService> _logger = logger;
-		private readonly string OBS_PATH = Environment.GetEnvironmentVariable("OBS_CMD_PATH") ?? throw new Exception("Missing OBS_CMD_PATH environment variable");
+		private readonly string OBS_PATH = Environment.GetEnvironmentVariable("OBS_PATH") ?? throw new Exception("Missing OBS_PATH environment variable");
 		private const string SENTINEL_PATH = "%APPDATA%\\obs-studio\\.sentinel";
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
@@ -143,7 +143,7 @@ namespace ObsProxy
 			{
 				_logger.LogInformation("KeepObsUpService is doing background work at: {time}", DateTimeOffset.Now);
 
-				if (Process.GetProcessesByName("obs").Length == 0)
+				if (Process.GetProcessesByName("obs64.exe").Length == 0)
 				{
 					_logger.LogWarning("OBS is not running. Attempting to start it.");
 					try
