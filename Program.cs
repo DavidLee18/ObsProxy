@@ -130,7 +130,14 @@ namespace ObsProxy
 	{
 		private readonly ILogger<KeepObsUpService> _logger = logger;
 		private readonly string OBS_PATH = Environment.GetEnvironmentVariable("OBS_PATH") ?? throw new Exception("Missing OBS_PATH environment variable");
-		private const string SENTINEL_PATH = "%APPDATA%\\obs-studio\\.sentinel";
+		private string SENTINEL_PATH
+		{
+			get
+			{
+				string roamingAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+				return Path.Combine(roamingAppDataPath, "obs-studio", ".sentinel");
+			}
+		}
 
 		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
 		{
@@ -148,7 +155,7 @@ namespace ObsProxy
 					_logger.LogWarning("OBS is not running. Attempting to start it.");
 					try
 					{
-						if (Directory.Exists(Environment.ExpandEnvironmentVariables(SENTINEL_PATH)))
+						if (Directory.Exists(SENTINEL_PATH))
 						{
 							_logger.LogInformation("Sentinel directory exists at {path}. Deleting it to allow OBS to start.", SENTINEL_PATH);
 							Directory.Delete(SENTINEL_PATH, true);
@@ -156,7 +163,7 @@ namespace ObsProxy
 						var psi = new ProcessStartInfo
 						{
 							FileName = OBS_PATH,
-							UseShellExecute = false,
+							UseShellExecute = true,
 							RedirectStandardOutput = true,
 							RedirectStandardError = true,
 						};
