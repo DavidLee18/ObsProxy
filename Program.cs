@@ -16,6 +16,8 @@ if (string.IsNullOrEmpty(OBS_CMD_PATH) || string.IsNullOrEmpty(OBS_WS_PORT) || s
 
 builder.WebHost.UseUrls($"http://0.0.0.0:{OBS_PROXY_PORT}");
 builder.Host.UseWindowsService();
+builder.Services.AddControllers();
+builder.Services.AddHostedService<ObsProxy.KeepObsCleanService>();
 if (System.OperatingSystem.IsWindows())
 {
 	builder.Logging.AddEventLog(settings =>
@@ -123,4 +125,50 @@ app.Run();
 namespace ObsProxy
 {
 	public record ScenePack(string Scene);
+	public class KeepObsCleanService(ILogger<KeepObsCleanService> logger) : BackgroundService
+	{
+		private readonly ILogger<KeepObsCleanService> _logger = logger;
+		private string SENTINEL_PATH
+		{
+			get
+			{
+				string roamingAppDataPath = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
+				return Path.Combine(roamingAppDataPath, "obs-studio", ".sentinel");
+			}
+		}
+
+		protected override async Task ExecuteAsync(CancellationToken stoppingToken)
+		{
+			_logger.LogInformation("KeepObsCleanService is starting.");
+
+			stoppingToken.Register(() =>
+				_logger.LogInformation("KeepObsCleanService is stopping."));
+
+			while (!stoppingToken.IsCancellationRequested)
+			{
+				_logger.LogInformation("KeepObsCleanService is doing background work at: {time}", DateTimeOffset.Now);
+
+				if (Process.GetProcessesByName("obs64.exe").Length == 0)
+				{
+					_logger.LogWarning("OBS is not running. Attempting to clean the remnants.");
+					try
+					{
+						if (Directory.Exists(SENTINEL_PATH))
+						{
+							_logger.LogInformation("Sentinel directory exists at {path}. Deleting it to allow OBS to start.", SENTINEL_PATH);
+							Directory.Delete(SENTINEL_PATH, true);
+						}
+					}
+					catch (Exception ex)
+					{
+						_logger.LogError(ex, "Exception occurred while trying to start OBS");
+					}
+				}
+
+				await Task.Delay(TimeSpan.FromSeconds(1), stoppingToken);
+			}
+
+			_logger.LogInformation("KeepObsUpService has stopped.");
+		}
+	}
 }
